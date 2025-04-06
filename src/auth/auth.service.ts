@@ -29,7 +29,10 @@ export class AuthService {
         throw new ForbiddenException('Invalid credentials');
       }
       const { password: _, ...details } = user;
-      return await this.signToken(user.id, user.email, user.fullname);
+      return {
+        accessToken: await this.signToken(user.id, user.email, user.fullname),
+        user: details,
+      };
     } catch (error) {
       throw error;
     }
@@ -47,6 +50,7 @@ export class AuthService {
       });
       const { password: _, ...details } = user;
       return {
+        message: 'User created successfully',
         user: details,
       };
     } catch (error) {
@@ -56,6 +60,7 @@ export class AuthService {
       throw error;
     }
   }
+
   private async signToken(userId: number, email: string, fullname: string) {
     try {
       const payload = {
@@ -64,13 +69,10 @@ export class AuthService {
         fullname,
       };
       const secret = this.config.get('JWT_SECRET');
-      const token = await this.jwt.signAsync(payload, {
+      return await this.jwt.signAsync(payload, {
         expiresIn: '1h',
         secret,
       });
-      return {
-        access_token: token,
-      };
     } catch (error) {
       throw error;
     }

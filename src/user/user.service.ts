@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateUserDto } from './dto';
 import * as argon from 'argon2';
+
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
