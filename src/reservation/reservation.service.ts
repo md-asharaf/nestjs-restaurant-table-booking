@@ -1,4 +1,5 @@
 import {
+    ConflictException,
     ForbiddenException,
     Injectable,
     InternalServerErrorException,
@@ -6,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReservationDto } from './dto';
-
+import { addMinutes } from 'date-fns';
 @Injectable()
 export class ReservationService {
     constructor(private prisma: PrismaService) {}
@@ -34,18 +35,72 @@ export class ReservationService {
             );
         }
     }
-    // TODO : implement booking and sending confirmation email to user
     async reserveTable(userId: number, dto: ReservationDto) {
         try {
+            const { name, location, duration, cuisines, date, time, seats } =
+                dto;
+            const filter: any = {
+                name,
+                location,
+            };
+            if (cuisines && cuisines.length > 0) {
+                filter.cuisines = {
+                    some: {
+                        name: {
+                            in: cuisines,
+                        },
+                    },
+                };
+            }
+            //check if restaurant exists
+            const restaurant = await this.prisma.restaurant.findFirst({
+                where: filter,
+            });
+            if (!restaurant) {
+                throw new NotFoundException('Restaurant not found');
+            }
+            const [hour, minute] = time.split(':').map(Number);
+            const reservationStart = new Date(date);
+            reservationStart.setHours(hour, minute, 0, 0);
+            const reservationEnd = addMinutes(reservationStart, duration);
+
+            //check if any reservation is already booked overlapping at that time and date
+            const overlappingReservations =
+                await this.prisma.reservation.findMany({
+                    where: {
+                        restaurantId: restaurant.id,
+                        NOT: {
+                            OR: [
+                                {
+                                    end: {
+                                        lte: reservationStart,
+                                    },
+                                },
+                                {
+                                    start: {
+                                        gte: reservationEnd,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                });
+            if (overlappingReservations.length >= restaurant.capacity) {
+                throw new ConflictException('No tables available at this time');
+            }
+            // create reservation
             const reservation = await this.prisma.reservation.create({
                 data: {
+                    restaurantId: restaurant.id,
                     userId,
-                    ...dto,
+                    start: reservationStart,
+                    end: reservationEnd,
+                    seat: seats,
                 },
             });
             if (!reservation) {
                 throw new InternalServerErrorException(
-                    'Reservation could not be created',
+                    'Failed to create reservation',
                 );
             }
             return {
