@@ -11,6 +11,60 @@ import { addMinutes } from 'date-fns';
 @Injectable()
 export class ReservationService {
     constructor(private prisma: PrismaService) {}
+
+    async createReservation(userId: number, dto: ReservationDto) {
+        try {
+            const { restaurantId, duration, date, time, seats } = dto;
+            const restaurant = await this.prisma.restaurant.findUnique({
+                where: {
+                    id: restaurantId,
+                },
+                include: {
+                    reservations: true,
+                },
+            });
+            if (!restaurant) {
+                throw new NotFoundException('Restaurant not found');
+            }
+            const [hour, minute] = time.split(':').map(Number);
+            const reservationStart = new Date(date);
+            reservationStart.setHours(hour, minute, 0, 0);
+            const reservationEnd = addMinutes(reservationStart, duration);
+
+            const overlappingReservations = restaurant.reservations.filter(
+                (res) =>
+                    !(
+                        res.end <= reservationStart ||
+                        res.start >= reservationEnd
+                    ),
+            );
+            if (overlappingReservations.length + seats > restaurant.capacity) {
+                throw new ConflictException('No tables available at this time');
+            }
+            const reservation = await this.prisma.reservation.create({
+                data: {
+                    restaurantId: restaurant.id,
+                    userId,
+                    start: reservationStart,
+                    end: reservationEnd,
+                    seat: seats,
+                },
+            });
+            if (!reservation) {
+                throw new InternalServerErrorException(
+                    'Failed to create reservation',
+                );
+            }
+            return {
+                message: 'reservation created successfully',
+                reservation,
+            };
+        } catch (error) {
+            console.error(error);
+            throw new InternalServerErrorException('Failed to reserve a table');
+        }
+    }
+
     async getAllReservations(userId: number, page: number, limit: number) {
         try {
             const skip = (page - 1) * limit;
@@ -35,83 +89,37 @@ export class ReservationService {
             );
         }
     }
-    async reserveTable(userId: number, dto: ReservationDto) {
-        try {
-            const { name, location, duration, cuisines, date, time, seats } =
-                dto;
-            const filter: any = {
-                name,
-                location,
-            };
-            if (cuisines && cuisines.length > 0) {
-                filter.cuisines = {
-                    some: {
-                        name: {
-                            in: cuisines,
-                        },
-                    },
-                };
-            }
-            //check if restaurant exists
-            const restaurant = await this.prisma.restaurant.findFirst({
-                where: filter,
-            });
-            if (!restaurant) {
-                throw new NotFoundException('Restaurant not found');
-            }
-            const [hour, minute] = time.split(':').map(Number);
-            const reservationStart = new Date(date);
-            reservationStart.setHours(hour, minute, 0, 0);
-            const reservationEnd = addMinutes(reservationStart, duration);
 
-            //check if any reservation is already booked overlapping at that time and date
-            const overlappingReservations =
-                await this.prisma.reservation.findMany({
-                    where: {
-                        restaurantId: restaurant.id,
-                        NOT: {
-                            OR: [
-                                {
-                                    end: {
-                                        lte: reservationStart,
-                                    },
-                                },
-                                {
-                                    start: {
-                                        gte: reservationEnd,
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                });
-            if (overlappingReservations.length >= restaurant.capacity) {
-                throw new ConflictException('No tables available at this time');
-            }
-            // create reservation
-            const reservation = await this.prisma.reservation.create({
-                data: {
-                    restaurantId: restaurant.id,
-                    userId,
-                    start: reservationStart,
-                    end: reservationEnd,
-                    seat: seats,
+    async getReservationById(userId: number, reservationId: number) {
+        try {
+            const reservation = await this.prisma.reservation.findUnique({
+                where: {
+                    id: reservationId,
+                },
+                include: {
+                    restaurant: true,
                 },
             });
             if (!reservation) {
-                throw new InternalServerErrorException(
-                    'Failed to create reservation',
+                throw new NotFoundException('Reservation not found');
+            }
+            if (reservation.userId !== userId) {
+                throw new ForbiddenException(
+                    'You are not allowed to view this reservation',
                 );
             }
             return {
-                message: 'reservation created successfully',
+                message: 'retrieved reservation successfully',
                 reservation,
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException('Failed to reserve a table');
+            throw new InternalServerErrorException(
+                'Failed to retrieve reservation',
+            );
         }
     }
+
     async deleteReservation(userId: number, reservationId: number) {
         try {
             const reservation = await this.prisma.reservation.findUnique({

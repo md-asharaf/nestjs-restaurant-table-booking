@@ -8,9 +8,13 @@ import {
     Min,
     Max,
     IsDate,
+    IsInt,
 } from 'class-validator';
 
 export class ReservationDto {
+    @IsInt({ message: 'Restaurant ID must be an integer' })
+    restaurantId: number;
+
     @IsDate({ message: 'Date is required' })
     date: string;
 
@@ -26,17 +30,9 @@ export class ReservationDto {
     })
     time: string;
 
-    @IsString()
-    @IsNotEmpty({ message: 'Location is required' })
-    location: string;
-
     @IsNumber()
     @Min(1, { message: 'Seats must be at least 1' })
     seats: number;
-
-    @IsString()
-    @IsNotEmpty({ message: 'Restaurant name is required' })
-    name: string;
 
     @IsOptional()
     @IsArray({ message: 'Cuisines must be an array of strings' })
