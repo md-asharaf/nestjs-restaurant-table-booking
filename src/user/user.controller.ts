@@ -8,13 +8,15 @@ import { JwtGuard } from 'src/auth/guard';
 @UseGuards(JwtGuard)
 @Controller('users')
 export class UserController {
-  constructor(private userService: UserService) {}
-  @Get('me')
-  getMe(@GetUser() user: User) {
-    return user;
-  }
-  @Patch('update')
-  updateUser(@GetUser('id') id: number, @Body() dto: UpdateUserDto) {
-    return this.userService.updateUser(id, dto);
-  }
+    constructor(private userService: UserService) {}
+
+    @Get('me')
+    getMe(@GetUser() user: User) {
+        return user;
+    }
+
+    @Patch()
+    update(@GetUser('id') id: number, @Body() dto: UpdateUserDto) {
+        return this.userService.update(id, dto);
+    }
 }

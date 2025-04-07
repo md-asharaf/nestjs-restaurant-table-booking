@@ -6,24 +6,24 @@ import { CreateRestaurantDto, SearchRestaurantDto } from './dto';
 export class RestaurantController {
     constructor(private readonly restaurantService: RestaurantService) {}
 
-    @Get('search')
-    getRestaurants(@Query() query: any, @Body() dto: SearchRestaurantDto) {
+    @Get()
+    findAll(@Query() query: any, @Body() dto: SearchRestaurantDto) {
         const { page = 1, limit = 10 } = query;
-        return this.restaurantService.getRestaurants(page, limit, dto);
+        return this.restaurantService.findAll(page, limit, dto);
     }
 
     @Get(':id')
-    getRestaurantById(@Query('id') id: number) {
-        return this.restaurantService.getRestaurantById(id);
+    findOne(@Query('id') id: number) {
+        return this.restaurantService.findOne(id);
     }
 
-    @Post('create')
-    createRestaurant(@Body() dto: CreateRestaurantDto) {
-        return this.restaurantService.createRestaurant(dto);
+    @Post()
+    create(@Body() dto: CreateRestaurantDto) {
+        return this.restaurantService.create(dto);
     }
 
     @Delete(':id')
-    deleteRestaurant(@Query('id') id: number) {
-        return this.restaurantService.deleteRestaurant(id);
+    remove(@Query('id') id: number) {
+        return this.restaurantService.remove(id);
     }
 }

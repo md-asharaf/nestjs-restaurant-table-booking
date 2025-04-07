@@ -12,7 +12,7 @@ import { addMinutes } from 'date-fns';
 export class RestaurantService {
     constructor(private prisma: PrismaService) {}
 
-    async createRestaurant(dto: CreateRestaurantDto) {
+    async create(dto: CreateRestaurantDto) {
         const { name, location, capacity, cuisines } = dto;
 
         const loweredName = name.toLowerCase();
@@ -70,7 +70,7 @@ export class RestaurantService {
         }
     }
 
-    async getRestaurantById(restaurantId: number) {
+    async findOne(restaurantId: number) {
         try {
             const restaurant = await this.prisma.restaurant.findUnique({
                 where: {
@@ -95,7 +95,7 @@ export class RestaurantService {
         }
     }
 
-    async getRestaurants(
+    async findAll(
         page: number,
         limit: number,
         dto: SearchRestaurantDto,
@@ -166,7 +166,7 @@ export class RestaurantService {
         }
     }
 
-    async updateRestaurant(restaurantId: number, dto: CreateRestaurantDto) {
+    async update(restaurantId: number, dto: CreateRestaurantDto) {
         try {
             const { cuisines, ...rest } = dto;
 
@@ -241,7 +241,7 @@ export class RestaurantService {
         }
     }
 
-    async deleteRestaurant(restaurantId: number) {
+    async remove(restaurantId: number) {
         try {
             const restaurant = await this.prisma.restaurant.findUnique({
                 where: { id: restaurantId },

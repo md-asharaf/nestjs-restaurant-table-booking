@@ -12,7 +12,7 @@ import { addMinutes } from 'date-fns';
 export class ReservationService {
     constructor(private prisma: PrismaService) {}
 
-    async createReservation(userId: number, dto: ReservationDto) {
+    async create(userId: number, dto: ReservationDto) {
         try {
             const { restaurantId, duration, date, time, seats } = dto;
             const restaurant = await this.prisma.restaurant.findUnique({
@@ -65,7 +65,7 @@ export class ReservationService {
         }
     }
 
-    async getAllReservations(userId: number, page: number, limit: number) {
+    async findAll(userId: number, page: number, limit: number) {
         try {
             const skip = (page - 1) * limit;
             const reservations = await this.prisma.reservation.findMany({
@@ -90,7 +90,7 @@ export class ReservationService {
         }
     }
 
-    async getReservationById(userId: number, reservationId: number) {
+    async findOne(userId: number, reservationId: number) {
         try {
             const reservation = await this.prisma.reservation.findUnique({
                 where: {
@@ -120,7 +120,7 @@ export class ReservationService {
         }
     }
 
-    async deleteReservation(userId: number, reservationId: number) {
+    async remove(userId: number, reservationId: number) {
         try {
             const reservation = await this.prisma.reservation.findUnique({
                 where: {

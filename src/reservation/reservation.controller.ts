@@ -15,37 +15,34 @@ import { GetUser } from 'src/auth/decorator';
 import { JwtGuard } from 'src/auth/guard';
 
 @UseGuards(JwtGuard)
-@Controller()
+@Controller('reservations')
 export class ReservationController {
     constructor(private readonly reservationService: ReservationService) {}
 
-    @Get('reservations')
-    getAllReservations(@GetUser('id') userId: number, @Query() query: any) {
+    @Get()
+    findAll(@GetUser('id') userId: number, @Query() query: any) {
         const { page = 1, limit = 10 } = query;
-        return this.reservationService.getAllReservations(userId, page, limit);
+        return this.reservationService.findAll(userId, page, limit);
     }
 
-    @Get('reservations/:id')
-    getReservation(
+    @Get(':id')
+    find(
         @GetUser('id') userId: number,
         @Param('id', ParseIntPipe) reservationId: number,
     ) {
-        return this.reservationService.getReservationById(
-            userId,
-            reservationId,
-        );
+        return this.reservationService.findOne(userId, reservationId);
     }
 
-    @Post('reserve')
-    reserveTable(@GetUser('id') userId: number, @Body() dto: ReservationDto) {
-        return this.reservationService.createReservation(userId, dto);
+    @Post()
+    create(@GetUser('id') userId: number, @Body() dto: ReservationDto) {
+        return this.reservationService.create(userId, dto);
     }
 
-    @Delete('reservations/:id')
-    deleteReservation(
+    @Delete(':id')
+    remove(
         @GetUser('id') userId: number,
         @Param('id', ParseIntPipe) reservationId: number,
     ) {
-        return this.reservationService.deleteReservation(userId, reservationId);
+        return this.reservationService.remove(userId, reservationId);
     }
 }
