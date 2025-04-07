@@ -8,10 +8,9 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           Int           @id @default(autoincrement())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   email        String        @unique
   password     String
   fullname     String
@@ -21,30 +20,35 @@ model User {
 model Reservation {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  updatedAt DateTime @updatedAt
 
-  reservationDate     DateTime
-  reservationDuration Int
-  reservationTime     String
-  numberOfPeople      Int
+  start DateTime
+  end   DateTime
+  seat  Int
 
   userId       Int
   user         User       @relation(fields: [userId], references: [id])
   restaurantId Int
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
-
-  @@unique([userId, restaurantId, reservationDate, reservationTime])
 }
 
 model Restaurant {
   id           Int           @id @default(autoincrement())
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
-  name         String        @unique
+  updatedAt    DateTime      @updatedAt
+  name         String
   location     String
-  cuisine      String[]
-  tableCount     Int
+  capacity     Int
   reservations Reservation[]
+  
+  cuisines Cuisine[] @relation("RestaurantCuisines")
 
   @@unique([name, location])
+}
+
+model Cuisine {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  restaurants Restaurant[] @relation("RestaurantCuisines")
 }
