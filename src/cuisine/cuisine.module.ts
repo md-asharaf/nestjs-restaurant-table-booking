@@ -3,7 +3,7 @@ import { CuisineService } from './cuisine.service';
 import { CuisineController } from './cuisine.controller';
 
 @Module({
-  controllers: [CuisineController],
-  providers: [CuisineService],
+    controllers: [CuisineController],
+    providers: [CuisineService],
 })
 export class CuisineModule {}

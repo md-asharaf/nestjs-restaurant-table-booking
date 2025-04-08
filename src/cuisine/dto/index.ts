@@ -1,1 +1,1 @@
-export * from './cuisine.dto'
+export * from './cuisine.dto';

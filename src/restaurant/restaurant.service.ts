@@ -1,12 +1,10 @@
 import {
     Injectable,
     NotFoundException,
-    InternalServerErrorException,
     ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRestaurantDto, SearchRestaurantDto } from './dto';
-import { addMinutes } from 'date-fns';
 
 @Injectable()
 export class RestaurantService {
@@ -36,7 +34,6 @@ export class RestaurantService {
                     name: { in: loweredCuisines },
                 },
             });
-
             const missingCuisines = loweredCuisines.filter((cuisine) =>
                 existingCuisines.every((e) => e.name !== cuisine),
             );
@@ -64,9 +61,7 @@ export class RestaurantService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to create restaurant',
-            );
+            throw error;
         }
     }
 
@@ -89,20 +84,13 @@ export class RestaurantService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to fetch restaurant details',
-            );
+            throw error;
         }
     }
 
-    async findAll(
-        page: number,
-        limit: number,
-        dto: SearchRestaurantDto,
-    ) {
+    async findAll(page: number, limit: number, dto: SearchRestaurantDto) {
         try {
-            const { name, location, cuisines, seats, date, time, duration } =
-                dto;
+            const { name, location, cuisines, capacity } = dto || {};
             const skip = (page - 1) * limit;
 
             const filter: any = {
@@ -115,6 +103,11 @@ export class RestaurantService {
                         some: {
                             name: { in: cuisines },
                         },
+                    },
+                }),
+                ...(capacity && {
+                    capacity: {
+                        gte: capacity,
                     },
                 }),
             };
@@ -132,37 +125,17 @@ export class RestaurantService {
                 throw new NotFoundException('No matching restaurants found');
             }
 
-            const [hour, minute] = time.split(':').map(Number);
-            const start = new Date(date);
-            start.setHours(hour, minute, 0, 0);
-            const end = addMinutes(start, duration);
-
-            const availableRestaurants = allMatchingRestaurants.filter((r) => {
-                const overlappingReservations = r.reservations.filter(
-                    (res) => !(res.end <= start || res.start >= end),
-                );
-                return r.capacity >= seats + overlappingReservations.length;
-            });
-
-            if (!availableRestaurants.length) {
-                throw new NotFoundException(
-                    'No available restaurants for the given time',
-                );
-            }
-
-            const paginated = availableRestaurants.slice(skip, skip + limit);
+            const paginated = allMatchingRestaurants.slice(skip, skip + limit);
 
             return {
                 message: 'Restaurants retrieved successfully',
                 restaurants: paginated,
                 page,
-                totalCount: availableRestaurants.length,
+                totalCount: allMatchingRestaurants.length,
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to fetch restaurants',
-            );
+            throw error;
         }
     }
 
@@ -235,9 +208,7 @@ export class RestaurantService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to update restaurant',
-            );
+            throw error;
         }
     }
 
@@ -268,9 +239,7 @@ export class RestaurantService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to delete restaurant',
-            );
+            throw error;
         }
     }
 }

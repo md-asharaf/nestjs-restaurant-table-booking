@@ -31,15 +31,20 @@ export class ReservationService {
             reservationStart.setHours(hour, minute, 0, 0);
             const reservationEnd = addMinutes(reservationStart, duration);
 
-            const overlappingReservations = restaurant.reservations.filter(
-                (res) =>
+            const reservedTables = restaurant.reservations.reduce(
+                (acc, reservation) =>
                     !(
-                        res.end <= reservationStart ||
-                        res.start >= reservationEnd
-                    ),
+                        reservationStart >= reservation.end ||
+                        reservationEnd <= reservation.start
+                    )
+                        ? acc + reservation.seat
+                        : acc,
+                0,
             );
-            if (overlappingReservations.length + seats > restaurant.capacity) {
-                throw new ConflictException('No tables available at this time');
+            if (reservedTables + seats > restaurant.capacity) {
+                throw new ConflictException(
+                    'Not enough tables available at this time',
+                );
             }
             const reservation = await this.prisma.reservation.create({
                 data: {
@@ -61,7 +66,7 @@ export class ReservationService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException('Failed to reserve a table');
+            throw error;
         }
     }
 
@@ -71,6 +76,9 @@ export class ReservationService {
             const reservations = await this.prisma.reservation.findMany({
                 where: {
                     userId,
+                },
+                include: {
+                    restaurant: true,
                 },
                 skip,
                 take: limit,
@@ -84,9 +92,7 @@ export class ReservationService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to retrieve reservation history',
-            );
+            throw error;
         }
     }
 
@@ -114,9 +120,7 @@ export class ReservationService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to retrieve reservation',
-            );
+            throw error;
         }
     }
 
@@ -146,9 +150,7 @@ export class ReservationService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                'Failed to delete reservation',
-            );
+            throw error;
         }
     }
 }

@@ -39,7 +39,7 @@ model Restaurant {
   name         String
   location     String
   capacity     Int
-  reservations Reservation[]
+  reservations Reservation[] 
   
   cuisines Cuisine[] @relation("RestaurantCuisines")
 

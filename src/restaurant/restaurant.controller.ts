@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    Query,
+} from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { CreateRestaurantDto, SearchRestaurantDto } from './dto';
 
@@ -6,15 +14,15 @@ import { CreateRestaurantDto, SearchRestaurantDto } from './dto';
 export class RestaurantController {
     constructor(private readonly restaurantService: RestaurantService) {}
 
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.restaurantService.findOne(+id);
+    }
+
     @Get()
     findAll(@Query() query: any, @Body() dto: SearchRestaurantDto) {
         const { page = 1, limit = 10 } = query;
-        return this.restaurantService.findAll(page, limit, dto);
-    }
-
-    @Get(':id')
-    findOne(@Query('id') id: number) {
-        return this.restaurantService.findOne(id);
+        return this.restaurantService.findAll(+page, +limit, dto);
     }
 
     @Post()
@@ -23,7 +31,7 @@ export class RestaurantController {
     }
 
     @Delete(':id')
-    remove(@Query('id') id: number) {
-        return this.restaurantService.remove(id);
+    remove(@Param('id') id: string) {
+        return this.restaurantService.remove(+id);
     }
 }

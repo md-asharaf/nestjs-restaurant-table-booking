@@ -48,24 +48,9 @@ export class SearchRestaurantDto {
     @IsNotEmpty({ each: true, message: 'Cuisine names cannot be empty' })
     cuisines?: string[];
 
+    @IsOptional()
     @Type(() => Number)
     @IsNumber()
-    @IsPositive({ message: 'Seats must be a positive number' })
-    seats: number;
-
-    @Type(() => Date)
-    @IsDate({ message: 'Date must be a valid ISO date' })
-    date: Date;
-
-    @IsString()
-    @IsNotEmpty({ message: 'Time is required' })
-    @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
-        message: 'Time must be in HH:MM 24-hour format',
-    })
-    time: string;
-
-    @Type(() => Number)
-    @IsNumber()
-    @IsPositive({ message: 'Duration must be a positive number (in minutes)' })
-    duration: number;
+    @IsPositive({ message: 'Capacity must be a positive number' })
+    capacity?: number;
 }

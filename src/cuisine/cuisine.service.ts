@@ -39,7 +39,7 @@ export class CuisineService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException('Failed to create cuisine');
+            throw error;
         }
     }
 
@@ -55,7 +55,7 @@ export class CuisineService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException('Failed to fetch cuisines');
+            throw error;
         }
     }
 
@@ -75,9 +75,7 @@ export class CuisineService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException(
-                `Failed to fetch cuisine with id ${id}`,
-            );
+            throw error;
         }
     }
 
@@ -112,7 +110,7 @@ export class CuisineService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException('Failed to update cuisine');
+            throw error;
         }
     }
 
@@ -137,7 +135,7 @@ export class CuisineService {
             };
         } catch (error) {
             console.error(error);
-            throw new InternalServerErrorException('Failed to delete cuisine');
+            throw error;
         }
     }
 }

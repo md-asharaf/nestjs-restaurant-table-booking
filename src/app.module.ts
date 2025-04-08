@@ -7,10 +7,21 @@ import { UserModule } from './user/user.module';
 import { ReservationModule } from './reservation/reservation.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { CuisineModule } from './cuisine/cuisine.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [AuthModule, PrismaModule, UserModule, ReservationModule, RestaurantModule, CuisineModule],
-  controllers: [AppController],
-  providers: [AppService],
+    imports: [
+        AuthModule,
+        PrismaModule,
+        UserModule,
+        ReservationModule,
+        RestaurantModule,
+        CuisineModule,
+        ConfigModule.forRoot({
+            isGlobal: true,
+        }),
+    ],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}

@@ -31,6 +31,7 @@ export class UserService {
                 updatedUser: details,
             };
         } catch (error) {
+            console.error(error);
             throw error;
         }
     }

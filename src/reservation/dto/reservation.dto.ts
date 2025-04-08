@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
     IsArray,
     IsNotEmpty,
@@ -15,8 +16,9 @@ export class ReservationDto {
     @IsInt({ message: 'Restaurant ID must be an integer' })
     restaurantId: number;
 
-    @IsDate({ message: 'Date is required' })
-    date: string;
+    @Transform(({ value }) => new Date(value))
+    @IsDate({ message: 'Date is required and must be valid' })
+    date: Date;
 
     @IsNumber()
     @Min(1, { message: 'Duration must be at least 1 minute' })

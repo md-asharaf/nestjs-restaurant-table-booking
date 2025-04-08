@@ -1,1 +1,1 @@
-export * from './restaurant.dto'
+export * from './restaurant.dto';
