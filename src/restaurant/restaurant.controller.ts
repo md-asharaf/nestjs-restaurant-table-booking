@@ -4,12 +4,16 @@ import {
     Delete,
     Get,
     Param,
+    Patch,
     Post,
     Query,
+    UseGuards,
 } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
 import { CreateRestaurantDto, SearchRestaurantDto } from './dto';
-
+import { JwtGuard } from 'src/auth/guard';
+import { GetUser } from 'src/auth/decorator';
+import { User } from '@prisma/client';
 @Controller('restaurants')
 export class RestaurantController {
     constructor(private readonly restaurantService: RestaurantService) {}
@@ -19,19 +23,47 @@ export class RestaurantController {
         return this.restaurantService.findOne(+id);
     }
 
+    @Get(':id/reservations')
+    getReservations(
+        @GetUser() user:User,
+        @Param('id') restaurantId: string,
+        @Query() query: any,
+    ) {
+        return this.restaurantService.getReservations(
+            user,
+            +restaurantId,
+            query,
+        );
+    }
+
+    @Get(':id/availability')
+    findAvailability(@Param('id') id: string, @Query() query: any) {
+        return this.restaurantService.findAvailability(+id, query);
+    }
     @Get()
-    findAll(@Query() query: any, @Body() dto: SearchRestaurantDto) {
-        const { page = 1, limit = 10 } = query;
-        return this.restaurantService.findAll(+page, +limit, dto);
+    findAll(@Query() query: SearchRestaurantDto) {
+        return this.restaurantService.findAll(query);
     }
 
+    @UseGuards(JwtGuard)
     @Post()
-    create(@Body() dto: CreateRestaurantDto) {
-        return this.restaurantService.create(dto);
+    create(@GetUser() user: User, @Body() dto: CreateRestaurantDto) {
+        return this.restaurantService.create(user, dto);
     }
 
+    @UseGuards(JwtGuard)
+    @Patch(':id')
+    update(
+        @GetUser() user: User,
+        @Param('id') id: string,
+        @Body() dto: CreateRestaurantDto,
+    ) {
+        return this.restaurantService.update(user, +id, dto);
+    }
+
+    @UseGuards(JwtGuard)
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.restaurantService.remove(+id);
+    remove(@GetUser() user: User, @Param('id') id: string) {
+        return this.restaurantService.remove(user, +id);
     }
 }

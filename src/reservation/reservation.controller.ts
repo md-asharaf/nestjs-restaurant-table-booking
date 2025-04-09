@@ -13,6 +13,7 @@ import { ReservationService } from './reservation.service';
 import { ReservationDto } from './dto';
 import { GetUser } from 'src/auth/decorator';
 import { JwtGuard } from 'src/auth/guard';
+import { User } from '@prisma/client';
 
 @UseGuards(JwtGuard)
 @Controller('reservations')
@@ -20,17 +21,16 @@ export class ReservationController {
     constructor(private readonly reservationService: ReservationService) {}
 
     @Get()
-    findAll(@GetUser('id') userId: number, @Query() query: any) {
-        const { page = 1, limit = 10 } = query;
-        return this.reservationService.findAll(userId, page, limit);
+    findAll(@GetUser('role') role: string, @Query() query: any) {
+        return this.reservationService.findAll(role, query);
     }
 
     @Get(':id')
-    find(
-        @GetUser('id') userId: number,
+    findOne(
+        @GetUser() user: User,
         @Param('id', ParseIntPipe) reservationId: number,
     ) {
-        return this.reservationService.findOne(userId, reservationId);
+        return this.reservationService.findOne(user, reservationId);
     }
 
     @Post()
@@ -40,9 +40,9 @@ export class ReservationController {
 
     @Delete(':id')
     remove(
-        @GetUser('id') userId: number,
+        @GetUser('id') user: User,
         @Param('id', ParseIntPipe) reservationId: number,
     ) {
-        return this.reservationService.remove(userId, reservationId);
+        return this.reservationService.remove(user, reservationId);
     }
 }

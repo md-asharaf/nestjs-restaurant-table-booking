@@ -1,15 +1,13 @@
-import { Type } from 'class-transformer';
+import { PartialType } from '@nestjs/mapped-types';
+import { Transform, Type } from 'class-transformer';
 import {
     IsString,
     IsNotEmpty,
     IsArray,
     ArrayNotEmpty,
-    IsNumber,
     Min,
-    IsPositive,
     IsOptional,
-    IsDate,
-    Matches,
+    IsInt,
 } from 'class-validator';
 
 export class CreateRestaurantDto {
@@ -27,30 +25,8 @@ export class CreateRestaurantDto {
     @IsNotEmpty({ each: true, message: 'Cuisine names cannot be empty' })
     cuisines: string[];
 
-    @Type(() => Number)
-    @IsNumber()
+    @Transform(({ value }) => parseInt(value, 10))
+    @IsInt()
     @Min(1, { message: 'Capacity must be at least 1' })
     capacity: number;
-}
-
-export class SearchRestaurantDto {
-    @IsOptional()
-    @IsString()
-    name?: string;
-
-    @IsOptional()
-    @IsString()
-    location?: string;
-
-    @IsOptional()
-    @IsArray()
-    @IsString({ each: true, message: 'Each cuisine must be a string' })
-    @IsNotEmpty({ each: true, message: 'Cuisine names cannot be empty' })
-    cuisines?: string[];
-
-    @IsOptional()
-    @Type(() => Number)
-    @IsNumber()
-    @IsPositive({ message: 'Capacity must be a positive number' })
-    capacity?: number;
 }

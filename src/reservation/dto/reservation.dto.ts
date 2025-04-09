@@ -8,18 +8,21 @@ import {
     Matches,
     Min,
     Max,
-    IsDate,
     IsInt,
 } from 'class-validator';
 
 export class ReservationDto {
+    @Transform(({ value }) => parseInt(value, 10))
     @IsInt({ message: 'Restaurant ID must be an integer' })
     restaurantId: number;
 
-    @Transform(({ value }) => new Date(value))
-    @IsDate({ message: 'Date is required and must be valid' })
-    date: Date;
+    @IsString({ message: 'Date must be a string' })
+    @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+        message: 'Date must be in YYYY-MM-DD format',
+    })
+    date: string;
 
+    @Transform(({ value }) => parseInt(value, 10))
     @IsNumber()
     @Min(1, { message: 'Duration must be at least 1 minute' })
     @Max(240, { message: 'Duration cannot exceed 240 minutes' })
@@ -32,6 +35,7 @@ export class ReservationDto {
     })
     time: string;
 
+    @Transform(({ value }) => parseInt(value, 10))
     @IsNumber()
     @Min(1, { message: 'Seats must be at least 1' })
     seats: number;

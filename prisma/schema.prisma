@@ -7,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+  OWNER
+}
+
+enum Status {
+  CANCELLED
+  ACTIVE
+  COMPLETED
+}
+
 model User {
   id           Int           @id @default(autoincrement())
   createdAt    DateTime      @default(now())
@@ -14,6 +26,9 @@ model User {
   email        String        @unique
   password     String
   fullname     String
+  isVerified   Boolean       @default(false)
+  role         Role          @default(USER)
+  restaurants  Restaurant[]
   reservations Reservation[]
 }
 
@@ -22,9 +37,10 @@ model Reservation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  start DateTime
-  end   DateTime
-  seat  Int
+  start  DateTime
+  end    DateTime
+  seats  Int
+  status Status   @default(ACTIVE)
 
   userId       Int
   user         User       @relation(fields: [userId], references: [id])
@@ -39,9 +55,10 @@ model Restaurant {
   name         String
   location     String
   capacity     Int
-  reservations Reservation[] 
-  
-  cuisines Cuisine[] @relation("RestaurantCuisines")
+  reservations Reservation[]
+  ownerId      Int
+  owner        User          @relation(fields: [ownerId], references: [id])
+  cuisines     Cuisine[]     @relation("RestaurantCuisines")
 
   @@unique([name, location])
 }
