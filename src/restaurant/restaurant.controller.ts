@@ -28,6 +28,7 @@ export class RestaurantController {
         return this.restaurantService.findOne(+id);
     }
 
+    @UseGuards(JwtGuard)
     @Get(':id/reservations')
     getReservations(
         @GetUser() user: User,
