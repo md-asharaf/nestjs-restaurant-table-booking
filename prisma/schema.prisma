@@ -19,6 +19,15 @@ enum Status {
   COMPLETED
 }
 
+model Session {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  userAgent String
+  ipAddress String
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model User {
   id           Int           @id @default(autoincrement())
   createdAt    DateTime      @default(now())
@@ -28,6 +37,7 @@ model User {
   fullname     String
   isVerified   Boolean       @default(false)
   role         Role          @default(USER)
+  sessions     Session[]
   restaurants  Restaurant[]
   reservations Reservation[]
 }

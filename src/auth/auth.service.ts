@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+    ConflictException,
+    ForbiddenException,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -6,9 +11,15 @@ import { LoginDto, RegisterDto } from './dto';
 import * as argon from 'argon2';
 import { Role } from '@prisma/client';
 import { UserService } from 'src/user/user.service';
+import { Response, Request } from 'express';
 
 @Injectable()
 export class AuthService {
+    private cookieOptions = {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict' as const,
+    };
     constructor(
         private prisma: PrismaService,
         private jwt: JwtService,
@@ -16,35 +27,67 @@ export class AuthService {
         private userService: UserService,
     ) {}
 
-    async login(dto: LoginDto) {
+    async login(dto: LoginDto, req: Request, res: Response) {
         try {
             const { email, password, role = Role.USER } = dto;
+
             const user = await this.prisma.user.findUnique({
-                where: {
-                    email,
-                },
+                where: { email },
             });
-            if (!user) {
-                throw new ForbiddenException('User does not exist');
-            }
-            if (user.role !== role) {
-                throw new ForbiddenException('Invalid credentials');
-            }
+            if (!user) throw new ForbiddenException('User does not exist');
+            if (user.role !== role)
+                throw new ForbiddenException('Invalid role');
+
             const isPasswordMatching = await argon.verify(
                 user.password,
                 password,
             );
-            if (!isPasswordMatching) {
+            if (!isPasswordMatching)
                 throw new ForbiddenException('Invalid credentials');
+
+            const ipAddress =
+                (req.headers['x-forwarded-for'] as string)
+                    ?.split(',')[0]
+                    ?.trim() ||
+                req.socket?.remoteAddress ||
+                req.ip ||
+                'Unknown IP';
+
+            const userAgent = req.get('user-agent') || 'Unknown';
+            const existingSession = await this.prisma.session.findFirst({
+                where: {
+                    userId: user.id,
+                    userAgent: userAgent,
+                    ipAddress: ipAddress,
+                },
+            });
+            let session;
+            if (existingSession) {
+                session = existingSession;
+            } else {
+                session = await this.prisma.session.create({
+                    data: {
+                        userId: user.id,
+                        userAgent,
+                        ipAddress,
+                    },
+                });
             }
-            const { password: _, ...details } = user;
+            if (!session) {
+                throw new ForbiddenException('Failed to create session');
+            }
+            const accessToken = await this.signAccessToken(user.id, session.id);
+            const refreshToken = await this.signRefreshToken(
+                user.id,
+                session.id,
+            );
+            res.cookie('refresh_token', refreshToken, this.cookieOptions);
+            const { password: _, ...userData } = user;
+
             return {
-                accessToken: await this.signToken(
-                    user.id,
-                    user.email,
-                    user.fullname,
-                ),
-                user: details,
+                user: userData,
+                accessToken,
+                message: 'Login successful',
             };
         } catch (error) {
             throw error;
@@ -77,18 +120,122 @@ export class AuthService {
         }
     }
 
-    private async signToken(userId: number, email: string, fullname: string) {
+    async logout(refreshToken: string, res: Response) {
         try {
-            const payload = {
-                id: userId,
-                email,
-                fullname,
-            };
-            const secret = this.config.get('JWT_SECRET');
-            return await this.jwt.signAsync(payload, {
-                expiresIn: '1h',
-                secret,
+            const { userId, sessionId } = (await this.jwt.verifyAsync(
+                refreshToken,
+                {
+                    secret: this.config.get('REFRESH_TOKEN_SECRET'),
+                },
+            )) as { userId: number; sessionId: string };
+
+            const session = await this.prisma.session.findUnique({
+                where: { id: sessionId },
             });
+
+            if (!session || session.userId !== userId) {
+                throw new ForbiddenException('Invalid session or user');
+            }
+
+            await this.prisma.session.delete({ where: { id: sessionId } });
+
+            res.clearCookie('refresh_token', this.cookieOptions);
+
+            return { message: 'Logged out successfully' };
+        } catch (error) {
+            if (error.name === 'TokenExpiredError') {
+                throw new UnauthorizedException('Refresh token expired');
+            }
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+    }
+
+    async refreshTokens(refreshToken: string, res: Response, req: Request) {
+        try {
+            const { userId, sessionId } = (await this.jwt.verifyAsync(
+                refreshToken,
+                {
+                    secret: this.config.get('REFRESH_TOKEN_SECRET'),
+                },
+            )) as { userId: number; sessionId: string };
+            let session = await this.prisma.session.findUnique({
+                where: { id: sessionId },
+            });
+            if (session && session.userId !== userId) {
+                throw new ForbiddenException('Invalid session or user');
+            }
+            if (!session) {
+                const ipAddress =
+                    (req.headers['x-forwarded-for'] as string)
+                        ?.split(',')[0]
+                        ?.trim() ||
+                    req.socket?.remoteAddress ||
+                    req.ip ||
+                    'Unknown IP';
+
+                const userAgent = req.get('user-agent') || 'Unknown';
+                session = await this.prisma.session.create({
+                    data: {
+                        userId,
+                        userAgent,
+                        ipAddress,
+                    },
+                });
+            }
+
+            const newAccessToken = await this.signAccessToken(userId, session.id);
+            const newRefreshToken = await this.signRefreshToken(
+                userId,
+                session.id,
+            );
+
+            res.cookie('refresh_token', newRefreshToken, this.cookieOptions);
+
+            return {
+                accessToken: newAccessToken,
+                message: 'Tokens refreshed successfully',
+            };
+        } catch (error) {
+            if (error.name === 'TokenExpiredError') {
+                throw new UnauthorizedException('Refresh token expired');
+            }
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+    }
+
+    private async signAccessToken(userId: number, sessionId: string) {
+        try {
+            const secret = this.config.get('ACCESS_TOKEN_SECRET');
+            const expiresIn = this.config.get('ACCESS_TOKEN_EXPIRY');
+            return await this.jwt.signAsync(
+                {
+                    userId,
+                    sessionId,
+                },
+                {
+                    expiresIn,
+                    secret,
+                },
+            );
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    private async signRefreshToken(userId: number, sessionId: string) {
+        try {
+            const secret = this.config.get('REFRESH_TOKEN_SECRET');
+            const expiresIn = this.config.get('REFRESH_TOKEN_EXPIRY');
+            return await this.jwt.signAsync(
+                {
+                    userId,
+                    sessionId,
+                },
+                {
+                    expiresIn,
+                    secret,
+                },
+            );
         } catch (error) {
             throw error;
         }

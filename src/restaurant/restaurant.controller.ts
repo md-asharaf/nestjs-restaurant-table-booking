@@ -10,7 +10,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
-import { CreateRestaurantDto, SearchRestaurantDto } from './dto';
+import { CreateRestaurantDto, SearchRestaurantDto, UpdateRestaurantDto } from './dto';
 import { JwtGuard } from 'src/auth/guard';
 import { GetUser } from 'src/auth/decorator';
 import { User } from '@prisma/client';
@@ -56,7 +56,7 @@ export class RestaurantController {
     update(
         @GetUser() user: User,
         @Param('id') id: string,
-        @Body() dto: CreateRestaurantDto,
+        @Body() dto: UpdateRestaurantDto,
     ) {
         return this.restaurantService.update(user, +id, dto);
     }

@@ -5,6 +5,7 @@ import {
     Get,
     Param,
     ParseIntPipe,
+    Patch,
     Post,
     Query,
     UseGuards,
@@ -40,9 +41,17 @@ export class ReservationController {
 
     @Delete(':id')
     remove(
-        @GetUser('id') user: User,
+        @GetUser() user: User,
         @Param('id', ParseIntPipe) reservationId: number,
     ) {
         return this.reservationService.remove(user, reservationId);
+    }
+
+    @Patch(':id')
+    cancel(
+        @GetUser('id') userId: number,
+        @Param('id', ParseIntPipe) reservationId: number,
+    ) {
+        return this.reservationService.cancel(userId, reservationId);
     }
 }

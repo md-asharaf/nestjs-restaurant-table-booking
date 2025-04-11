@@ -20,20 +20,54 @@ export class UserService {
         private emailService: EmailService,
     ) {}
 
-    async update(id: number, dto: UpdateUserDto) {
-        const { fullname, password } = dto;
-        const data: any = {};
-        if (fullname) {
-            data.fullname = fullname;
+    async changePassword(
+        userId: number,
+        oldPassword: string,
+        newPassword: string,
+    ) {
+        if (oldPassword === newPassword) {
+            throw new ConflictException(
+                'New password cannot be the same as old password',
+            );
         }
-        if (password) {
-            data.password = await argon.hash(password);
+        const user = await this.prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+        });
+        if (!user) {
+            throw new NotFoundException('User not found');
         }
+        const isOldPasswordCorrect = await argon.verify(
+            user.password,
+            oldPassword,
+        );
+        if (!isOldPasswordCorrect) {
+            throw new UnauthorizedException('Old password is incorrect');
+        }
+        const hashedNewPassword = await argon.hash(newPassword);
+        const updatedUser = await this.prisma.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                password: hashedNewPassword,
+            },
+        });
+        const { password: _, ...details } = updatedUser;
+        return {
+            message: 'Password changed successfully',
+            user: details,
+        };
+    }
+    async update(id: number, fullname: string) {
         const updatedUser = await this.prisma.user.update({
             where: {
                 id,
             },
-            data,
+            data: {
+                fullname,
+            },
         });
         const { password: _, ...details } = updatedUser;
         return {
@@ -41,22 +75,27 @@ export class UserService {
         };
     }
 
-    async verifyEmail(otp: string, email: string) {
-        const isVerified = verifyOtp(email, otp);
-        if (!isVerified) {
+    async verifyEmail(otp: string, user: User) {
+        const { isVerified, email, id } = user;
+        if (isVerified) {
+            throw new ConflictException('User is already verified');
+        }
+        const isOtpCorrect = verifyOtp(email, otp);
+        if (!isOtpCorrect) {
             throw new UnauthorizedException('Invalid or expired OTP');
         }
         const verifiedUser = await this.prisma.user.update({
             where: {
-                email,
+                id,
             },
             data: {
-                isVerified,
+                isVerified: true,
             },
         });
+        const { password: _, ...details } = verifiedUser;
         return {
             message: 'email verified successfully',
-            user: verifiedUser,
+            user: details,
         };
     }
 

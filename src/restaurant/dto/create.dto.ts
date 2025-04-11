@@ -1,12 +1,10 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { Transform, Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
     IsString,
     IsNotEmpty,
     IsArray,
     ArrayNotEmpty,
     Min,
-    IsOptional,
     IsInt,
 } from 'class-validator';
 

@@ -49,8 +49,18 @@ export class UserController {
 
     @UseGuards(JwtGuard)
     @Patch('me')
-    update(@GetUser('id') id: number, @Body() dto: UpdateUserDto) {
-        return this.userService.update(id, dto);
+    update(@GetUser('id') id: number, @Body('fullname') name: string) {
+        return this.userService.update(id, name);
+    }
+
+    @UseGuards(JwtGuard)
+    @Patch('me/change-password')
+    changePassword(
+        @GetUser('id') id: number,
+        @Body('oldPassword') oldPassword: string,
+        @Body('newPassword') newPassword: string,
+    ) {
+        return this.userService.changePassword(id, oldPassword, newPassword);
     }
 
     @UseGuards(JwtGuard)
@@ -67,7 +77,7 @@ export class UserController {
 
     @UseGuards(JwtGuard)
     @Post('verify')
-    verifyEmail(@GetUser('email') email: string, @Body('otp') otp: string) {
-        return this.userService.verifyEmail(otp, email);
+    verifyEmail(@GetUser() user: User, @Body('otp') otp: string) {
+        return this.userService.verifyEmail(otp, user);
     }
 }

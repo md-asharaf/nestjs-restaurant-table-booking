@@ -30,20 +30,20 @@ export class EmailService {
     async sendBookingConfirmationEmail(dto: BookingConfirmationData) {
         const { to, ...rest } = dto;
         const html = bookingConfirmationTemplate(rest);
-        const subject = ``;
+        const subject = `Booking Confirmation`;
         return await this.sendEmail(to, subject, html);
     }
 
     async sendBookingReminderEmail(dto: BookingReminderData) {
         const { to, ...rest } = dto;
         const html = bookingReminderTemplate(rest);
-        const subject = ``;
+        const subject = `Booking Reminder`;
         return await this.sendEmail(to, subject, html);
     }
     async sendEmailVerificationCode(dto: EmailVerificationData) {
         const { to, ...rest } = dto;
         const html = emailVerificationTemplate(rest);
-        const subject = ``;
+        const subject = `Verify Your Email`;
         return await this.sendEmail(to, subject, html);
     }
 }
