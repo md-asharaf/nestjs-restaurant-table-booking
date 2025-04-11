@@ -55,6 +55,9 @@ export class CronService {
             });
 
             for (const { user, restaurant, start } of reservations) {
+                if (!user.isVerified) {
+                    continue;
+                }
                 await this.emailService.sendBookingReminderEmail({
                     to: user.email,
                     name: user.fullname,

@@ -4,14 +4,19 @@ import {
     Injectable,
     InternalServerErrorException,
     NotFoundException,
+    ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ReservationDto } from './dto';
 import { addMinutes } from 'date-fns';
 import { User } from '@prisma/client';
+import { EmailService } from 'src/email/email.service';
 @Injectable()
 export class ReservationService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private emailService: EmailService,
+    ) {}
 
     async create(userId: number, dto: ReservationDto) {
         const { restaurantId, duration, date, time, seats } = dto;
@@ -56,11 +61,33 @@ export class ReservationService {
                 end: reservationEnd,
                 seats: seats,
             },
+            include: {
+                user: true,
+            },
         });
         if (!reservation) {
             throw new InternalServerErrorException(
                 'Failed to create reservation',
             );
+        }
+        if (reservation.user.isVerified) {
+            const { error } =
+                await this.emailService.sendBookingConfirmationEmail({
+                    date: reservationStart.toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    }),
+                    time,
+                    name: reservation.user.fullname,
+                    restaurant: restaurant.name,
+                    to: reservation.user.email,
+                });
+            if (error) {
+                throw new ServiceUnavailableException(
+                    'Unable to send email at the moment. Please try again later.',
+                );
+            }
         }
         return {
             message: 'reservation created successfully',

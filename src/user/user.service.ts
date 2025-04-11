@@ -7,7 +7,6 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateUserDto } from './dto';
 import * as argon from 'argon2';
 import { User } from '@prisma/client';
 import { generateOtp, verifyOtp } from 'src/common/utils/otp.utils';

@@ -10,7 +10,12 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { RestaurantService } from './restaurant.service';
-import { CreateRestaurantDto, SearchRestaurantDto, UpdateRestaurantDto } from './dto';
+import {
+    AvailabilityDto,
+    CreateRestaurantDto,
+    SearchRestaurantDto,
+    UpdateRestaurantDto,
+} from './dto';
 import { JwtGuard } from 'src/auth/guard';
 import { GetUser } from 'src/auth/decorator';
 import { User } from '@prisma/client';
@@ -25,7 +30,7 @@ export class RestaurantController {
 
     @Get(':id/reservations')
     getReservations(
-        @GetUser() user:User,
+        @GetUser() user: User,
         @Param('id') restaurantId: string,
         @Query() query: any,
     ) {
@@ -37,7 +42,7 @@ export class RestaurantController {
     }
 
     @Get(':id/availability')
-    findAvailability(@Param('id') id: string, @Query() query: any) {
+    findAvailability(@Param('id') id: string, @Query() query: AvailabilityDto) {
         return this.restaurantService.findAvailability(+id, query);
     }
     @Get()

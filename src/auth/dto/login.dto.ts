@@ -21,5 +21,5 @@ export class LoginDto {
     @IsIn(['ADMIN', 'USER', 'OWNER'], {
         message: 'Role must be either admin, user, or owner',
     })
-    role?: Role='USER';
+    role?: Role = 'USER';
 }

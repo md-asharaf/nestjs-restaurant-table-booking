@@ -275,7 +275,7 @@ export class RestaurantService {
     }
 
     async findAvailability(restaurantId: number, query: AvailabilityDto) {
-        const { date = new Date(), time, seats = 1, duration = 60 } = query;
+        const { date, time, seats = 1, duration = 60 } = query;
         const restaurant = await this.prisma.restaurant.findUnique({
             where: { id: restaurantId },
             include: {
@@ -288,7 +288,7 @@ export class RestaurantService {
         const { capacity, reservations } = restaurant;
 
         if (time) {
-            const start = new Date(`${date}T${time}`);
+            const start = date ? new Date(date) : new Date();
             const end = new Date(start.getTime() + duration * 60000);
 
             const overlapping = reservations.filter(
@@ -320,7 +320,7 @@ export class RestaurantService {
             }[] = [];
 
             for (let hour = 0; hour < 24; hour++) {
-                const start = new Date(date);
+                const start = date ? new Date(date) : new Date();
                 start.setHours(hour, 0, 0, 0);
                 const end = new Date(start.getTime() + duration * 60000);
 

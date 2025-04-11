@@ -1,5 +1,4 @@
 import {
-    ConflictException,
     ForbiddenException,
     Injectable,
     UnauthorizedException,
@@ -18,7 +17,7 @@ export class AuthService {
     private cookieOptions = {
         httpOnly: true,
         secure: true,
-        sameSite: 'strict' as const,
+        sameSite: 'none' as const,
     };
     constructor(
         private prisma: PrismaService,
@@ -28,70 +27,53 @@ export class AuthService {
     ) {}
 
     async login(dto: LoginDto, req: Request, res: Response) {
-        try {
-            const { email, password, role = Role.USER } = dto;
+        const { email, password, role = Role.USER } = dto;
 
-            const user = await this.prisma.user.findUnique({
-                where: { email },
-            });
-            if (!user) throw new ForbiddenException('User does not exist');
-            if (user.role !== role)
-                throw new ForbiddenException('Invalid role');
+        const user = await this.prisma.user.findUnique({
+            where: { email },
+        });
+        if (!user) throw new ForbiddenException('User does not exist');
+        if (user.role !== role) throw new ForbiddenException('Invalid role');
 
-            const isPasswordMatching = await argon.verify(
-                user.password,
-                password,
-            );
-            if (!isPasswordMatching)
-                throw new ForbiddenException('Invalid credentials');
+        const isPasswordMatching = await argon.verify(user.password, password);
+        if (!isPasswordMatching)
+            throw new ForbiddenException('Invalid credentials');
 
-            const ipAddress =
-                (req.headers['x-forwarded-for'] as string)
-                    ?.split(',')[0]
-                    ?.trim() ||
-                req.socket?.remoteAddress ||
-                req.ip ||
-                'Unknown IP';
+        const ipAddress =
+            (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+            req.socket?.remoteAddress ||
+            req.ip ||
+            'Unknown IP';
 
-            const userAgent = req.get('user-agent') || 'Unknown';
-            const existingSession = await this.prisma.session.findFirst({
+        const userAgent = req.get('user-agent') || 'Unknown';
+        const session =
+            (await this.prisma.session.findFirst({
                 where: {
                     userId: user.id,
                     userAgent: userAgent,
                     ipAddress: ipAddress,
                 },
-            });
-            let session;
-            if (existingSession) {
-                session = existingSession;
-            } else {
-                session = await this.prisma.session.create({
-                    data: {
-                        userId: user.id,
-                        userAgent,
-                        ipAddress,
-                    },
-                });
-            }
-            if (!session) {
-                throw new ForbiddenException('Failed to create session');
-            }
-            const accessToken = await this.signAccessToken(user.id, session.id);
-            const refreshToken = await this.signRefreshToken(
-                user.id,
-                session.id,
-            );
-            res.cookie('refresh_token', refreshToken, this.cookieOptions);
-            const { password: _, ...userData } = user;
-
-            return {
-                user: userData,
-                accessToken,
-                message: 'Login successful',
-            };
-        } catch (error) {
-            throw error;
+            })) ||
+            (await this.prisma.session.create({
+                data: {
+                    userId: user.id,
+                    userAgent,
+                    ipAddress,
+                },
+            }));
+        if (!session) {
+            throw new ForbiddenException('Failed to create session');
         }
+        const accessToken = await this.signAccessToken(user.id, session.id);
+        const refreshToken = await this.signRefreshToken(user.id, session.id);
+        res.cookie('refresh_token', refreshToken, this.cookieOptions);
+        const { password: _, ...userData } = user;
+
+        return {
+            user: userData,
+            accessToken,
+            message: 'Login successful',
+        };
     }
 
     async register(dto: RegisterDto) {
@@ -122,12 +104,12 @@ export class AuthService {
 
     async logout(refreshToken: string, res: Response) {
         try {
-            const { userId, sessionId } = (await this.jwt.verifyAsync(
+            const { userId, sessionId } = await this.jwt.verifyAsync(
                 refreshToken,
                 {
                     secret: this.config.get('REFRESH_TOKEN_SECRET'),
                 },
-            )) as { userId: number; sessionId: string };
+            );
 
             const session = await this.prisma.session.findUnique({
                 where: { id: sessionId },
@@ -152,12 +134,12 @@ export class AuthService {
 
     async refreshTokens(refreshToken: string, res: Response, req: Request) {
         try {
-            const { userId, sessionId } = (await this.jwt.verifyAsync(
+            const { userId, sessionId } = await this.jwt.verifyAsync(
                 refreshToken,
                 {
                     secret: this.config.get('REFRESH_TOKEN_SECRET'),
                 },
-            )) as { userId: number; sessionId: string };
+            );
             let session = await this.prisma.session.findUnique({
                 where: { id: sessionId },
             });
@@ -183,7 +165,10 @@ export class AuthService {
                 });
             }
 
-            const newAccessToken = await this.signAccessToken(userId, session.id);
+            const newAccessToken = await this.signAccessToken(
+                userId,
+                session.id,
+            );
             const newRefreshToken = await this.signRefreshToken(
                 userId,
                 session.id,
@@ -204,40 +189,32 @@ export class AuthService {
     }
 
     private async signAccessToken(userId: number, sessionId: string) {
-        try {
-            const secret = this.config.get('ACCESS_TOKEN_SECRET');
-            const expiresIn = this.config.get('ACCESS_TOKEN_EXPIRY');
-            return await this.jwt.signAsync(
-                {
-                    userId,
-                    sessionId,
-                },
-                {
-                    expiresIn,
-                    secret,
-                },
-            );
-        } catch (error) {
-            throw error;
-        }
+        const secret = this.config.get('ACCESS_TOKEN_SECRET');
+        const expiresIn = this.config.get('ACCESS_TOKEN_EXPIRY');
+        return await this.jwt.signAsync(
+            {
+                userId,
+                sessionId,
+            },
+            {
+                expiresIn,
+                secret,
+            },
+        );
     }
 
     private async signRefreshToken(userId: number, sessionId: string) {
-        try {
-            const secret = this.config.get('REFRESH_TOKEN_SECRET');
-            const expiresIn = this.config.get('REFRESH_TOKEN_EXPIRY');
-            return await this.jwt.signAsync(
-                {
-                    userId,
-                    sessionId,
-                },
-                {
-                    expiresIn,
-                    secret,
-                },
-            );
-        } catch (error) {
-            throw error;
-        }
+        const secret = this.config.get('REFRESH_TOKEN_SECRET');
+        const expiresIn = this.config.get('REFRESH_TOKEN_EXPIRY');
+        return await this.jwt.signAsync(
+            {
+                userId,
+                sessionId,
+            },
+            {
+                expiresIn,
+                secret,
+            },
+        );
     }
 }

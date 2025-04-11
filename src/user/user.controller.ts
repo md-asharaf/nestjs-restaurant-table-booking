@@ -12,7 +12,6 @@ import {
 import { UserService } from './user.service';
 import { GetUser } from 'src/auth/decorator';
 import { User } from '@prisma/client';
-import { UpdateUserDto } from './dto';
 import { JwtGuard } from 'src/auth/guard';
 
 @Controller('users')
