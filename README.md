@@ -59,14 +59,14 @@ A **NestJS-based application** designed to manage restaurant table booking effic
 ## 🚩 Usage
 
 - When running locally, API endpoints are available at: `http://localhost:3000` (default configuration).
-- Swagger API documentation is available at: `http://localhost:3000/api/documentation`
+- Swagger API documentation is available at: `http://localhost:3000/api/docs`
 - Use tools like **Postman** or **cURL** to test the APIs.
 - Authentication is handled via **JWT**. Ensure you include the appropriate `Authorization` header when making requests to secured endpoints.
 
 ## 🌐 Deployment
 
-- Deployed URL: `https://nestjs-restaurant-table-booking.onrender.com` *(replace with your actual deployed link if different)*
-- API Documentation in production: `https://nestjs-restaurant-table-booking.onrender.com/api/documentation`
+- Deployed URL: `https://restaurant-table-booking-jq1q.onrender.com` *(replace with your actual deployed link if different)*
+- API Documentation in production: `https://restaurant-table-booking-jq1q.onrender.com/api/docs`
 
 ## 📑 Scripts
 

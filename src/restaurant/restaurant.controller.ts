@@ -63,7 +63,9 @@ import {
     @ApiOperation({ summary: 'Check restaurant availability' })
     @ApiParam({ name: 'id', type: String })
     @ApiQuery({ name: 'date', required: true, type: String })
-    @ApiQuery({ name: 'partySize', required: true, type: Number })
+    @ApiQuery({ name: 'seats', required: true, type: Number })
+    @ApiQuery({ name: 'time', required: true, type: String })
+    @ApiQuery({ name: 'duration', required: true, type: Number })
     @ApiResponse({ status: 200, description: 'Availability data' })
     findAvailability(
       @Param('id') id: string,
@@ -74,8 +76,11 @@ import {
   
     @Get()
     @ApiOperation({ summary: 'Search or list all restaurants' })
-    @ApiQuery({ name: 'cuisine', required: false, type: String })
+    @ApiQuery({ name: 'cuisines', required: false, type: Array<String> })
     @ApiQuery({ name: 'location', required: false, type: String })
+    @ApiQuery({ name: 'name', required: false, type: String })
+    @ApiQuery({ name: 'page', required: false, type: Number })
+    @ApiQuery({ name: 'limit', required: false, type: Number })
     @ApiResponse({ status: 200, description: 'Restaurants list' })
     findAll(@Query() query: SearchRestaurantDto) {
       return this.restaurantService.findAll(query);
